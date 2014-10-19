@@ -9,9 +9,11 @@ import(
     "bufio"
     "regexp"
     "log"
+    "os"
     )
 
-func main () {
+
+func main (){
 
     port := flag.Int("port",-1,"Port to listen on")
     threadCount := flag.Int("threadCount", 100, "Available thread count")
@@ -30,7 +32,8 @@ func main () {
 
     fmt.Println("Firing up "+strconv.Itoa(*threadCount)+" goroutines")
 
-    tcpListener, err := net.ListenTCP("tcp",&net.TCPAddr{nil,*port,""})
+    tcpAddr, _ := net.ResolveTCPAddr("tcp", os.Getenv("IP_ADDRESS")+":"+strconv.Itoa(*port))
+    tcpListener, err := net.ListenTCP("tcp", tcpAddr)
 
     if err != nil {
         log.Fatal(err)
@@ -66,9 +69,9 @@ func connectionHandler(sharedChan chan *net.TCPConn, killChan chan int) {
         message = strings.TrimSpace(message)
 
         if len(message) > 5 && message[:5] == "HELO " {
-            rgx, _ := regexp.Compile("^\\[(.*)\\]:(\\d+)$")
+            rgx, _ := regexp.Compile("^(.*):(\\d+)$")
             addr := rgx.FindStringSubmatch(tcpConn.LocalAddr().String())
-            fmt.Println(message[5:]+"\nIP:["+addr[1]+"]\nPort:"+addr[2]+"\nStudentID:08506426")
+            tcpConn.Write([]byte(message[5:]+"\nIP:"+addr[1]+"\nPort:"+addr[2]+"\nStudentID:08506426\n"))
         }
 
         if message == "KILL_SERVICE" {
